@@ -1,8 +1,10 @@
 import streamlit as st
+import plotly.graph_objects as go
 from core.risk_scoring import compute_risk_score, classify_risk
 from core.allocation_engine import base_allocation, adjust_for_valuation
 from core.data_fetcher import is_equity_overvalued, is_gold_overvalued, get_market_summary
 from core.product_ranking import get_recommended_products, format_product_display
+from core.backtesting import compare_strategies
 
 st.set_page_config(page_title="SmartInvest AI", layout="wide")
 
@@ -115,6 +117,71 @@ def main():
                     product_amount = (allocation_pct / 100) * amount
                     st.info(f"💵 Suggested investment in this product: **₹{product_amount:,.0f}**")
                     st.markdown("---")
+
+        # Backtesting Section
+        st.subheader("📊 Historical Performance Analysis (5-Year Backtest)")
+        st.write("See how your recommended portfolio would have performed over the past 5 years:")
+        
+        with st.spinner("Running backtest simulation..."):
+            backtest_results = compare_strategies(final_alloc, initial_amount=amount, years=5)
+        
+        # Performance Comparison Table
+        st.write("**Performance Metrics Comparison:**")
+        
+        metrics_data = []
+        for strategy_name, results in backtest_results.items():
+            metrics_data.append({
+                'Strategy': strategy_name,
+                'Final Value (₹)': f"{results['final_value']:,.0f}",
+                'Total Return': f"{results['total_return']:.2f}%",
+                'CAGR': f"{results['cagr']:.2f}%",
+                'Max Drawdown': f"{results['max_drawdown']:.2f}%",
+                'Sharpe Ratio': f"{results['sharpe_ratio']:.2f}"
+            })
+        
+        import pandas as pd
+        metrics_df = pd.DataFrame(metrics_data)
+        st.dataframe(metrics_df, use_container_width=True)
+        
+        # Portfolio Growth Chart
+        st.write("**Portfolio Growth Over Time:**")
+        
+        fig = go.Figure()
+        
+        colors = {'Recommended Portfolio': '#2E86AB', 'Nifty 50 Only': '#A23B72', 'Fixed Deposit Only': '#F18F01'}
+        
+        for strategy_name, results in backtest_results.items():
+            portfolio_series = results['portfolio_series']
+            fig.add_trace(go.Scatter(
+                x=portfolio_series.index,
+                y=portfolio_series.values,
+                mode='lines',
+                name=strategy_name,
+                line=dict(color=colors.get(strategy_name, '#333333'), width=2)
+            ))
+        
+        fig.update_layout(
+            title='Portfolio Value Over Time (5-Year Backtest)',
+            xaxis_title='Date',
+            yaxis_title='Portfolio Value (₹)',
+            hovermode='x unified',
+            height=500,
+            template='plotly_white'
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Key Insights
+        recommended_cagr = backtest_results['Recommended Portfolio']['cagr']
+        nifty_cagr = backtest_results['Nifty 50 Only']['cagr']
+        fd_cagr = backtest_results['Fixed Deposit Only']['cagr']
+        
+        if recommended_cagr > nifty_cagr and recommended_cagr > fd_cagr:
+            st.success(f"✅ Your recommended portfolio outperformed both Nifty 50 and FD with {recommended_cagr:.2f}% CAGR!")
+        elif recommended_cagr > fd_cagr:
+            st.info(f"📈 Your portfolio achieved {recommended_cagr:.2f}% CAGR, beating FD but with better risk management than 100% equity.")
+        else:
+            st.warning(f"⚠️ Lower volatility comes with moderate returns ({recommended_cagr:.2f}% CAGR), but safer than pure equity exposure.")
 
         st.markdown("""
         ---
