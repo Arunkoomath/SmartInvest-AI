@@ -18,6 +18,123 @@ from core.database import (
 
 st.set_page_config(page_title="SmartInvest AI", layout="wide")
 
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #1f77b4;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 1.5rem;
+        border-radius: 10px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .info-box {
+        background-color: #f0f8ff;
+        padding: 1rem;
+        border-left: 4px solid #1f77b4;
+        border-radius: 5px;
+        margin: 1rem 0;
+    }
+    .warning-box {
+        background-color: #fff3cd;
+        padding: 1rem;
+        border-left: 4px solid #ffc107;
+        border-radius: 5px;
+        margin: 1rem 0;
+    }
+    .success-box {
+        background-color: #d4edda;
+        padding: 1rem;
+        border-left: 4px solid #28a745;
+        border-radius: 5px;
+        margin: 1rem 0;
+    }
+    .stButton>button {
+        width: 100%;
+        background-color: #1f77b4;
+        color: white;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: bold;
+    }
+    .stButton>button:hover {
+        background-color: #145a8c;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+def create_risk_gauge(risk_score, risk_level):
+    """Create a gauge chart for risk score visualization"""
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta",
+        value=risk_score,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        title={'text': f"Risk Profile: {risk_level}", 'font': {'size': 20}},
+        delta={'reference': 50},
+        gauge={
+            'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
+            'bar': {'color': "darkblue"},
+            'bgcolor': "white",
+            'borderwidth': 2,
+            'bordercolor': "gray",
+            'steps': [
+                {'range': [0, 35], 'color': '#90EE90'},
+                {'range': [35, 70], 'color': '#FFD700'},
+                {'range': [70, 100], 'color': '#FF6347'}],
+            'threshold': {
+                'line': {'color': "red", 'width': 4},
+                'thickness': 0.75,
+                'value': risk_score
+            }
+        }
+    ))
+    
+    fig.update_layout(
+        height=300,
+        margin=dict(l=20, r=20, t=50, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        font={'size': 14}
+    )
+    
+    return fig
+
+
+def create_allocation_pie(allocation, title):
+    """Create a pie chart for asset allocation"""
+    labels = [asset.title() for asset in allocation.keys()]
+    values = list(allocation.values())
+    
+    colors = ['#2E86AB', '#A23B72', '#F18F01', '#06A77D']
+    
+    fig = go.Figure(data=[go.Pie(
+        labels=labels,
+        values=values,
+        hole=0.4,
+        marker=dict(colors=colors),
+        textinfo='label+percent',
+        textfont=dict(size=14),
+        hovertemplate='<b>%{label}</b><br>Allocation: %{percent}<br>Value: %{value}%<extra></extra>'
+    )])
+    
+    fig.update_layout(
+        title=title,
+        height=400,
+        showlegend=True,
+        paper_bgcolor="rgba(0,0,0,0)",
+        font={'size': 12}
+    )
+    
+    return fig
+
 
 def show_login_page():
     """Display login/signup page"""
@@ -132,7 +249,45 @@ def show_recommendation_page():
         risk_score = compute_risk_score(answers)
         risk_level = classify_risk(risk_score)
 
-        st.success(f"📌 Risk Score: **{risk_score}** → Profile: **{risk_level} Investor**")
+        st.markdown("---")
+        
+        # Risk Profile Visualization
+        col1, col2 = st.columns([2, 3])
+        
+        with col1:
+            st.plotly_chart(create_risk_gauge(risk_score, risk_level), use_container_width=True)
+        
+        with col2:
+            st.markdown("### 📊 Your Risk Profile")
+            st.success(f"**Risk Score:** {risk_score}/100")
+            st.info(f"**Risk Level:** {risk_level} Risk Investor")
+            
+            if risk_level == "Low":
+                st.markdown("""
+                **Low Risk Profile:**
+                - ✅ Prefers stability over high returns
+                - ✅ Comfortable with modest gains
+                - ✅ Lower volatility exposure
+                - ⚠️ Lower potential returns
+                """)
+            elif risk_level == "Medium":
+                st.markdown("""
+                **Medium Risk Profile:**
+                - ✅ Balanced risk-return approach
+                - ✅ Can handle moderate volatility
+                - ✅ Diversified across asset classes
+                - 📈 Moderate to good returns potential
+                """)
+            else:
+                st.markdown("""
+                **High Risk Profile:**
+                - ✅ Growth-focused strategy
+                - ✅ Can tolerate high volatility
+                - ✅ Higher equity allocation
+                - 🚀 Higher returns potential
+                """)
+        
+        st.markdown("---")
 
         # Base Allocation
         base_alloc = base_allocation(risk_level, horizon)
@@ -166,22 +321,33 @@ def show_recommendation_page():
             )
             st.caption(f"Status: **{market_data['gold_status']}**")
 
-        # Display Allocations
+        # Display Allocations with Pie Charts
         st.subheader("📈 Recommended Asset Allocation")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.write("**Base Allocation** (before market adjustment):")
-            for asset, pct in base_alloc.items():
-                st.write(f"- {asset.title()}: {pct}%")
+            st.plotly_chart(create_allocation_pie(base_alloc, "Base Allocation"), use_container_width=True)
+            st.caption("📊 Rule-based allocation based on your risk profile")
         
         with col2:
-            st.write("**Final Allocation** (market-adjusted):")
-            for asset, pct in final_alloc.items():
-                change = pct - base_alloc[asset]
-                emoji = "🔼" if change > 0 else "🔽" if change < 0 else "➖"
-                st.write(f"- {asset.title()}: {pct}% {emoji}")
+            st.plotly_chart(create_allocation_pie(final_alloc, "Market-Adjusted Allocation"), use_container_width=True)
+            st.caption("📊 Adjusted for current market valuations")
+        
+        # Show changes
+        st.markdown("#### 📊 Allocation Changes")
+        changes_col1, changes_col2, changes_col3, changes_col4 = st.columns(4)
+        
+        cols = [changes_col1, changes_col2, changes_col3, changes_col4]
+        for idx, (asset, pct) in enumerate(final_alloc.items()):
+            change = pct - base_alloc[asset]
+            with cols[idx]:
+                delta_color = "normal" if change == 0 else "inverse" if change < 0 else "normal"
+                st.metric(
+                    label=asset.title(),
+                    value=f"{pct}%",
+                    delta=f"{change:+.0f}%" if change != 0 else "No change"
+                )
         
         # Calculate investment amounts
         st.subheader("💰 Investment Breakdown (₹)")
