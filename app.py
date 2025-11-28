@@ -2,6 +2,7 @@ import streamlit as st
 from core.risk_scoring import compute_risk_score, classify_risk
 from core.allocation_engine import base_allocation, adjust_for_valuation
 from core.data_fetcher import is_equity_overvalued, is_gold_overvalued, get_market_summary
+from core.product_ranking import get_recommended_products, format_product_display
 
 st.set_page_config(page_title="SmartInvest AI", layout="wide")
 
@@ -96,6 +97,24 @@ def main():
         for asset, pct in final_alloc.items():
             amt = (pct / 100) * amount
             st.write(f"- {asset.title()}: ₹{amt:,.0f} ({pct}%)")
+
+        # Product Recommendations
+        st.subheader("🎯 Recommended Products")
+        st.write("Based on historical performance, expense ratios, and ratings:")
+        
+        recommended = get_recommended_products(final_alloc, top_n=2)
+        
+        for asset_class, products in recommended.items():
+            with st.expander(f"📊 {asset_class.title()} - Top Recommendations", expanded=True):
+                for i, product in enumerate(products, 1):
+                    st.markdown(f"### Option {i}")
+                    st.markdown(format_product_display(product))
+                    
+                    # Calculate investment for this product
+                    allocation_pct = final_alloc[asset_class]
+                    product_amount = (allocation_pct / 100) * amount
+                    st.info(f"💵 Suggested investment in this product: **₹{product_amount:,.0f}**")
+                    st.markdown("---")
 
         st.markdown("""
         ---

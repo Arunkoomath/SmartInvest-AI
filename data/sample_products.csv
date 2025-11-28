@@ -1,0 +1,21 @@
+name,ticker,asset_class,one_yr_return,three_yr_return,five_yr_return,expense_ratio,volatility,aum_cr,rating
+Nippon India Nifty 50 Index Fund,NIFTY50,equity,15.2,18.5,14.8,0.20,12.5,5200,4.5
+ICICI Prudential Nifty 50 Index Fund,NIFTY50,equity,15.1,18.3,14.6,0.18,12.4,4800,4.5
+SBI Nifty 50 Index Fund,NIFTY50,equity,15.0,18.2,14.5,0.15,12.3,6100,5.0
+UTI Nifty 50 Index Fund,NIFTY50,equity,14.9,18.1,14.4,0.22,12.6,3900,4.0
+Parag Parikh Flexi Cap Fund,PPFCF,equity,22.5,25.3,19.2,0.68,15.8,42000,5.0
+Axis Bluechip Fund,AXISBCF,equity,18.3,21.2,16.5,0.45,14.2,35000,4.5
+Mirae Asset Large Cap Fund,MALCF,equity,17.8,20.5,15.9,0.52,13.9,28000,4.5
+HDFC Top 100 Fund,HDFC100,equity,16.5,19.8,15.2,0.48,13.5,22000,4.0
+ICICI Prudential Gold ETF,GOLDIETF,gold,12.5,11.8,10.5,0.50,8.5,2500,4.0
+SBI Gold ETF,SBIGOLDETF,gold,12.3,11.6,10.3,0.45,8.4,1800,4.0
+HDFC Gold ETF,HDFCGOLDETF,gold,12.4,11.7,10.4,0.48,8.6,2200,4.0
+Nippon India Gold Savings Fund,NIGSF,gold,12.2,11.5,10.2,0.52,8.7,1200,3.5
+SBI Magnum Gilt Fund,SBIGILT,gilt,6.8,7.2,7.5,0.35,4.2,3200,4.0
+ICICI Prudential Gilt Fund,ICIGILT,gilt,6.7,7.1,7.4,0.32,4.1,2800,4.5
+HDFC Gilt Fund,HDFCGILT,gilt,6.9,7.3,7.6,0.38,4.3,2500,4.0
+UTI Gilt Fund,UTIGILT,gilt,6.6,7.0,7.3,0.40,4.4,1900,3.5
+HDFC Liquid Fund,HDLIQUID,debt,4.2,4.5,4.8,0.15,0.8,25000,4.5
+ICICI Prudential Liquid Fund,ICILIQUID,debt,4.1,4.4,4.7,0.12,0.7,32000,5.0
+SBI Liquid Fund,SBILIQUID,debt,4.0,4.3,4.6,0.18,0.9,18000,4.0
+Axis Liquid Fund,AXISLIQUID,debt,4.3,4.6,4.9,0.20,1.0,15000,4.0
