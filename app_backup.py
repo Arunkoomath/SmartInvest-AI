@@ -1,115 +1,24 @@
-"""
-Main Application with Authentication
-"""
-
 import streamlit as st
 import plotly.graph_objects as go
-import pandas as pd
-from datetime import datetime
 from core.risk_scoring import compute_risk_score, classify_risk
 from core.allocation_engine import base_allocation, adjust_for_valuation
 from core.data_fetcher import is_equity_overvalued, is_gold_overvalued, get_market_summary
 from core.product_ranking import get_recommended_products, format_product_display
 from core.backtesting import compare_strategies
-from core.database import (
-    create_user, authenticate_user, save_recommendation, 
-    get_user_recommendations, update_user_profile, get_user_profile
-)
 
 st.set_page_config(page_title="SmartInvest AI", layout="wide")
 
 
-def show_login_page():
-    """Display login/signup page"""
+def main():
+
     st.title("💰 SmartInvest AI")
-    st.caption("Risk-Based Portfolio & Product Recommendation System")
-    
-    tab1, tab2 = st.tabs(["Login", "Sign Up"])
-    
-    with tab1:
-        st.subheader("🔐 Login to Your Account")
-        with st.form("login_form"):
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            submit = st.form_submit_button("Login")
-            
-            if submit:
-                if username and password:
-                    success, message, user_id = authenticate_user(username, password)
-                    if success:
-                        st.session_state.logged_in = True
-                        st.session_state.user_id = user_id
-                        st.session_state.username = username
-                        st.success(message)
-                        st.rerun()
-                    else:
-                        st.error(message)
-                else:
-                    st.warning("Please enter both username and password")
-    
-    with tab2:
-        st.subheader("📝 Create New Account")
-        with st.form("signup_form"):
-            new_username = st.text_input("Choose Username")
-            new_email = st.text_input("Email (optional)")
-            new_password = st.text_input("Choose Password", type="password")
-            confirm_password = st.text_input("Confirm Password", type="password")
-            submit_signup = st.form_submit_button("Sign Up")
-            
-            if submit_signup:
-                if new_username and new_password:
-                    if new_password == confirm_password:
-                        success, message, user_id = create_user(new_username, new_password, new_email)
-                        if success:
-                            st.success(message + " Please login now.")
-                        else:
-                            st.error(message)
-                    else:
-                        st.error("Passwords don't match!")
-                else:
-                    st.warning("Please enter username and password")
-    
-    st.markdown("---")
-    st.info("💡 **Guest Mode:** You can also continue without login, but your recommendations won't be saved.")
-    if st.button("Continue as Guest"):
-        st.session_state.logged_in = False
-        st.session_state.guest_mode = True
-        st.rerun()
+    st.caption("Educational investment recommendation tool (not financial advice).")
 
-
-def show_recommendation_page():
-    """Main recommendation page"""
-    
-    # Header with logout/account info
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.title("💰 SmartInvest AI")
-        st.caption("Educational investment recommendation tool (not financial advice).")
-    with col2:
-        if st.session_state.get('logged_in'):
-            st.write(f"👤 **{st.session_state.username}**")
-            if st.button("Logout"):
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
-                st.rerun()
-        else:
-            st.caption("Guest Mode")
-            if st.button("Login"):
-                st.session_state.guest_mode = False
-                st.rerun()
-    
     # --- Sidebar Form ---
     st.sidebar.header("📌 Enter Your Details")
     
-    # Load saved profile if logged in
-    saved_profile = None
-    if st.session_state.get('logged_in'):
-        saved_profile = get_user_profile(st.session_state.user_id)
-    
-    age = st.sidebar.number_input("Age", min_value=18, max_value=100, 
-                                   value=saved_profile['age'] if saved_profile else 25)
-    horizon = st.sidebar.number_input("Investment Horizon (years)", 1, 30, 
-                                       value=saved_profile['horizon'] if saved_profile else 5)
+    age = st.sidebar.number_input("Age", min_value=18, max_value=100, value=25)
+    horizon = st.sidebar.number_input("Investment Horizon (years)", 1, 30, 5)
     amount = st.sidebar.number_input("Investment Amount (₹)", min_value=1000, value=50000, step=1000)
     
     goal = st.sidebar.selectbox(
@@ -230,6 +139,7 @@ def show_recommendation_page():
                 'Sharpe Ratio': f"{results['sharpe_ratio']:.2f}"
             })
         
+        import pandas as pd
         metrics_df = pd.DataFrame(metrics_data)
         st.dataframe(metrics_df, use_container_width=True)
         
@@ -273,24 +183,6 @@ def show_recommendation_page():
         else:
             st.warning(f"⚠️ Lower volatility comes with moderate returns ({recommended_cagr:.2f}% CAGR), but safer than pure equity exposure.")
 
-        # Save recommendation if logged in
-        if st.session_state.get('logged_in'):
-            save_success, save_msg = save_recommendation(
-                st.session_state.user_id,
-                amount,
-                goal,
-                risk_level,
-                risk_score,
-                base_alloc,
-                final_alloc,
-                market_data,
-                recommended
-            )
-            update_user_profile(st.session_state.user_id, age, horizon, risk_level, risk_score)
-            
-            if save_success:
-                st.success("💾 Recommendation saved to your account!")
-
         st.markdown("""
         ---
 
@@ -322,75 +214,6 @@ def show_recommendation_page():
         st.info("➡ Fill details in sidebar and click **Get Recommendation**")
 
 
-def show_saved_plans_page():
-    """Display saved recommendations history"""
-    st.title("📁 My Saved Investment Plans")
-    
-    if not st.session_state.get('logged_in'):
-        st.warning("Please login to view saved plans")
-        if st.button("Go to Login"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
-        return
-    
-    st.write(f"**Account:** {st.session_state.username}")
-    
-    recommendations = get_user_recommendations(st.session_state.user_id, limit=20)
-    
-    if not recommendations:
-        st.info("No saved recommendations yet. Generate your first recommendation!")
-        return
-    
-    st.write(f"**Total Saved Plans:** {len(recommendations)}")
-    st.markdown("---")
-    
-    for idx, rec in enumerate(recommendations, 1):
-        with st.expander(f"📌 Plan #{idx} - {rec['created_at'][:10]} | ₹{rec['amount']:,.0f} | {rec['risk_level']} Risk", expanded=False):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write(f"**Date:** {rec['created_at']}")
-                st.write(f"**Amount:** ₹{rec['amount']:,.0f}")
-                st.write(f"**Goal:** {rec['goal']}")
-                st.write(f"**Risk Profile:** {rec['risk_level']} (Score: {rec['risk_score']})")
-            
-            with col2:
-                st.write("**Final Allocation:**")
-                for asset, pct in rec['final_allocation'].items():
-                    amt = (pct / 100) * rec['amount']
-                    st.write(f"- {asset.title()}: {pct}% (₹{amt:,.0f})")
-            
-            st.write("**Market Conditions at Time of Recommendation:**")
-            mc = rec['market_conditions']
-            st.write(f"- Nifty P/E: {mc.get('nifty_pe', 'N/A')} ({mc.get('equity_status', 'N/A')})")
-            st.write(f"- Gold Price: ${mc.get('gold_price', 'N/A')} ({mc.get('gold_status', 'N/A')})")
-
-
-def main():
-    """Main application logic"""
-    
-    # Initialize session state
-    if 'logged_in' not in st.session_state:
-        st.session_state.logged_in = False
-    if 'guest_mode' not in st.session_state:
-        st.session_state.guest_mode = False
-    
-    # Page routing
-    if st.session_state.logged_in or st.session_state.guest_mode:
-        # Show navigation in sidebar
-        page = st.sidebar.radio(
-            "Navigation",
-            ["🏠 Get Recommendation", "📁 My Saved Plans"] if st.session_state.logged_in else ["🏠 Get Recommendation"]
-        )
-        
-        if page == "🏠 Get Recommendation":
-            show_recommendation_page()
-        elif page == "📁 My Saved Plans":
-            show_saved_plans_page()
-    else:
-        show_login_page()
-
-
 if __name__ == "__main__":
     main()
+
