@@ -15,7 +15,7 @@ Build a web app where an Indian retail investor can enter:
 - Goal (Short-term / Wealth creation / Retirement)  
 - Income level  
 - Existing investments  
-- Risk questionnaire answers  
+- Risk questionnaire answers
 
 …and get:
 
